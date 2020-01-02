@@ -1,0 +1,69 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)
+scores <- read.csv("scores.csv", stringsAsFactors = FALSE)
+scores <- scores[,-c(1,2)]
+scores <- scores %>%
+  mutate(grade_type = str_replace(grade_name, "\\d+","")) %>%
+  mutate(grade_type = str_replace(grade_type, ".Ch.","")) %>% # just to make it prettier
+  mutate(grade_type = str_replace(grade_type, ".ch.","")) %>%
+  mutate(grade_type = str_replace(grade_type, "Lab.", "Lab"))
+lab_ranked <- scores %>%
+  group_by(Last.Name, First.Name) %>%
+  filter(grade_type == "Lab") %>%
+  mutate(rank = row_number(score)) %>%
+  arrange(Last.Name, First.Name, rank)
+lab_dropped <- lab_ranked %>%
+  filter(rank > 2)
+scores_lab <- lab_dropped %>%
+  summarise(lab_grade = mean(score) * 2) # lab weight 20%
+scores_exam <- scores %>%
+  group_by(Last.Name, First.Name) %>%
+  filter(grade_name == "Midterm" | grade_name == "Final.exam" | grade_name == "Extra.Credit") %>%
+  summarise(exam_weighted = sum(score) * 0.25) # 25% weight on midterm and final
+scores_hw <- scores %>%
+  group_by(Last.Name, First.Name) %>%
+  filter(grade_type == "HW") %>%
+  summarise(hw_weighted = mean(score) * 2)
+scores_quiz <- scores %>%
+  group_by(Last.Name, First.Name) %>%
+  filter(grade_type == "Quiz") %>%
+  summarise(quiz_weighted = mean(score))
+df<-list(scores_lab,scores_exam,scores_hw,scores_quiz) %>%
+  Reduce(function(dtf1,dtf2) inner_join(dtf1,dtf2,by=c('Last.Name','First.Name')), .)
+df$grade_all<- rowSums( df[,3:6] )
+df<-df[,-c(3:6)]
+df
+
+```
+
+```{r}
+df$grade = cut(df$grade_all, 
+                    breaks = c(0,40,60,80,90, 100), 
+                    labels = c("F", "D", "C", "B", "A"),
+                    right = FALSE, 
+                    include.lowest = TRUE)
+df<-df %>%
+  arrange(Last.Name, First.Name)
+df
+```
+
+```{r}
+dat <- read.csv("scores.csv", stringsAsFactors = FALSE)
+dat_lab <- dat %>%
+  filter(grepl("^Lab\\.(10|[6789])", grade_name))
+dat_lab$grade_name <- factor(dat_lab$grade_name, levels = c("Lab.6", "Lab.7", "Lab.8", "Lab.9","Lab.10"))
+ggplot(dat_lab) +
+  geom_col(aes(x = grade_name, y = score), fill = "chocolate") +
+  facet_wrap(~ X) +
+  coord_flip() +
+  labs(x = "", y = "score [%]")
+```
+

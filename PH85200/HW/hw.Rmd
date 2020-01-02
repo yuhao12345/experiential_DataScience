@@ -1,0 +1,49 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+library(ggplot2)
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = cty, y = hwy,color=displ)) 
+```
+
+```{r}
+library(tidyverse)
+lab <- read.csv('lab_grades.csv', stringsAsFactors = FALSE)
+lab1<-lab[,c(1,4:8)]
+lab1[is.na(lab1)]<-0
+lab2<-lab1 %>%
+  gather(2:6,key='lab',value='score')
+plot<-ggplot(data=lab2)+
+  geom_col(aes(x=lab,y=score),color='snow',fill='red')+
+  facet_wrap(~X,nrow=5)+
+  labs(title='Lab Scores',y='score',x='lab#')+
+  coord_flip()
+plot
+```
+
+```{r}
+#Q1
+st<-'wd\"\'\\w'
+writeLines(st)
+str_view(st,'\"\'\\\\')
+#Q2
+#regular expression \..\..\.. matches: .character.character.character
+#represent it as a string: \\..\\..\\..
+```
+
+```{r}
+#Q3
+score <- read.csv('scores.csv', stringsAsFactors = FALSE)
+score<-score[,-(1:2)] %>%
+  arrange(Last.Name,First.Name) %>%
+  mutate(grade_type=sub(pattern='(\\..h\\.\\d+|\\.\\d+)',replacement='',x=grade_name))
+score %>%
+  head(40)
+```
+
